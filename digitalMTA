@@ -1,0 +1,59 @@
+WITH att_account AS (
+    SELECT 
+        da.*,
+        fa.ACCOUNT_NAME
+    FROM 
+        PRD_EDW_DB.analytics.dim_att da
+    JOIN 
+        PRD_EDW_DB.ANALYTICS.FCT_ACCOUNT fa ON da.ATT_KEY = fa.ATT_KEY
+)
+
+SELECT 
+    COUNT(*) AS count,
+    CASE
+        WHEN att_first_ga_source LIKE '%email%' THEN 'Email'
+        WHEN att_first_ga_medium LIKE '%partner%' 
+            OR att_first_ga_source LIKE '%zenefits%'
+            OR att_first_ga_source LIKE '%clio%'
+            OR att_first_ga_source LIKE '%partner%'
+            OR att_first_ga_source LIKE '%lightspeed%'
+            OR att_first_ga_source LIKE '%eniac%'
+            OR att_first_ga_source LIKE '%ycombinator%'
+            OR att_first_ga_source LIKE '%quiet.com%'
+            OR att_first_ga_source LIKE '%kruzeconsulting%'
+            OR att_first_ga_source LIKE '%ondeck%'
+            OR att_first_ga_source LIKE '%lastpass%'
+            OR att_first_ga_source LIKE '%correlation%' THEN 'Partnerships'
+        WHEN att_first_ga_term = 'embroker' AND att_first_ga_medium LIKE '%cpc%' THEN 'Paid Brand'
+        WHEN att_first_ga_medium LIKE '%cpc%' OR 
+            att_first_ga_medium LIKE '%sem_nb%' OR 
+            att_first_ga_medium LIKE '%paidsocial%' OR 
+            att_first_ga_medium LIKE '%youtube%' OR 
+            att_first_ga_medium LIKE '%display%' OR 
+            att_first_ga_medium LIKE '%facebook%' OR 
+            att_first_ga_medium LIKE '%investopedia%' OR 
+            att_first_ga_medium LIKE '%affiliate%' THEN 'Paid Media'
+        WHEN att_first_ga_source = 'google' AND att_first_ga_term = 'embroker' THEN 'Organic Brand'
+        WHEN att_first_ga_medium LIKE '%(none)%' OR 
+            att_first_ga_medium IS NULL 
+            OR (att_first_ga_source = 'bing' AND att_first_ga_term = 'embroker') THEN 'Organic Brand'
+        WHEN att_first_ga_medium LIKE '%organic%' AND 
+            att_first_ga_source LIKE '%google%' THEN 'Organic'
+        WHEN att_first_ga_medium LIKE '%organic%' AND 
+            att_first_ga_source LIKE '%bing%' THEN 'Organic'
+        WHEN att_first_ga_source LIKE '%you.com%' OR 
+            att_first_ga_source LIKE '%advisorsmith%' OR 
+            att_first_ga_source LIKE '%bing%' OR 
+            att_first_ga_source LIKE '%duckduckgo%' OR 
+            att_first_ga_source LIKE '%webcrawler.com%' 
+        THEN 'Organic'
+        ELSE 'Other'
+    END AS channel
+FROM 
+    att_account aa
+JOIN 
+    PRD_EDW_DB.ANALYTICS.FCT_APPLICATION fa ON aa.ACCOUNT_NAME = fa.COMPANY_NAME
+WHERE 
+    fa.APP_TYPE_CODE NOT LIKE '%Manual%'
+GROUP BY 
+    channel;
